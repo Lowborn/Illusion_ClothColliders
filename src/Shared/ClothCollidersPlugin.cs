@@ -31,6 +31,7 @@ namespace ClothColliders
 
 #if AI || HS2
         private const ChaListDefine.CategoryNo FirstClothingCategoryNo = ChaListDefine.CategoryNo.fo_top;
+
 #else
         private const ChaListDefine.CategoryNo FirstClothingCategoryNo = ChaListDefine.CategoryNo.co_top;
 #endif
@@ -82,13 +83,27 @@ namespace ClothColliders
             Logger.LogDebug($"Loading cloth collider data for {manifest.GUID}");
             foreach (var clothData in clothElements)
             {
-                var category = (ChaListDefine.CategoryNo)Enum.Parse(typeof(ChaListDefine.CategoryNo), clothData.Attribute("category")?.Value ?? throw new FormatException("Missing category attribute"));
-                var clothPartId = category - FirstClothingCategoryNo;
+                int category = (int)(ChaListDefine.CategoryNo)Enum.Parse(typeof(ChaListDefine.CategoryNo), clothData.Attribute("category")?.Value ?? throw new FormatException("Missing category attribute"));
+                int clothPartId = (int)(category - FirstClothingCategoryNo);
 
+                #if AI || HS2
+                //check the cloth belongs to male or female category for AI & HS2, if its other game, it will not perform this check. Lowborn
+                if (category < 200)
+                {
+                    //male clothes
+                    clothPartId = (int)(category - FirstClothingCategoryNo + 100);
+                }
+
+                else
+                {
+                    //female clothes
+                    clothPartId = (int)(category - FirstClothingCategoryNo);
+                }
+                #endif
                 var clothName = clothData.Attribute("clothName")?.Value ?? throw new FormatException("Missing clothName attribute");
 
                 var itemId = int.Parse(clothData.Attribute("id")?.Value ?? throw new FormatException("Missing id attribute"));
-                var resolvedItemId = UniversalAutoResolver.TryGetResolutionInfo(itemId, category, manifest.GUID);
+                var resolvedItemId = UniversalAutoResolver.TryGetResolutionInfo(itemId, (ChaListDefine.CategoryNo)category, manifest.GUID);
                 if (resolvedItemId != null)
                 {
                     Logger.LogDebug($"Found resolved ID: {itemId} => {resolvedItemId.LocalSlot}");
@@ -101,7 +116,7 @@ namespace ClothColliders
 
                 var uniqueId = clothPartId + "-" + clothName + "_" + itemId;
                 var dictKey = GetDictKey(clothPartId, itemId);
-
+                
                 foreach (var colliderData in clothData.Elements())
                 {
                     if (colliderData.Name == "SphereColliderPair")
