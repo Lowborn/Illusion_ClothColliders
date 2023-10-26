@@ -13,6 +13,8 @@ using KKAPI.Utilities;
 using Sideloader;
 using Sideloader.AutoResolver;
 using UnityEngine;
+using KKAPI.Maker;
+//using CharaCustom;
 #if AI || HS2
 using AIChara;
 #endif
@@ -93,7 +95,12 @@ namespace ClothColliders
                     //male clothes
                     clothPartId = (int)(category - FirstClothingCategoryNo + 100);
                 }
-
+                else if (category > 349)
+                {
+                    //acc
+                    clothPartId = (int)(category - FirstClothingCategoryNo - 111);
+                }
+                
                 else
                 {
                     //female clothes
@@ -115,6 +122,9 @@ namespace ClothColliders
                 }
 
                 var uniqueId = clothPartId + "-" + clothName + "_" + itemId;
+
+                Logger.LogDebug("clothPartIdd "+clothPartId);
+
                 var dictKey = GetDictKey(clothPartId, itemId);
                 
                 foreach (var colliderData in clothData.Elements())
@@ -193,19 +203,47 @@ namespace ClothColliders
                 float.Parse(parts[2], CultureInfo.InvariantCulture));
         }
 
-        [HarmonyPostfix, HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeCustomClothes))]
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeCustomClothes))]
         [UsedImplicitly]
         private static void ChangeCustomClothes(ChaControl __instance, int kind)
         {
             if (__instance != null)
             {
+                //Logger.LogMessage("Changing Clothes");
                 var controller = __instance.GetComponent<ClothColliderController>();
                 if (controller != null)
                 {
                     //IEnumerator DelayedCo
                     __instance.StartCoroutine(CoroutineUtils.CreateCoroutine(new WaitForEndOfFrame(), () => controller.UpdateColliders(kind)));
+                    //Logger.LogMessage("Clothes kind "+kind.ToString());
                 }
             }
         }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeAccessoryParent))]
+        [UsedImplicitly]
+        private static void ChangeAccessoryParent(ChaControl __instance, int slotNo, string parentStr)
+        {
+            if (__instance != null)
+            {               
+                
+                var controller = __instance.GetComponent<ClothColliderController>();
+                if (controller != null && slotNo < 20)
+                {
+                    //IEnumerator DelayedCo
+                    int kind = __instance.nowCoordinate.accessory.parts[slotNo].type;
+                    ClothCollidersPlugin.Logger.LogDebug("kind " + kind);
+                    __instance.StartCoroutine(CoroutineUtils.CreateCoroutine(new WaitForEndOfFrame(), () => controller.UpdateCollidersAcc(kind, slotNo)));
+                    Logger.LogMessage("Acc kind " + slotNo.ToString());
+                }
+                else
+                {
+                    Logger.LogMessage("Acc Slot Out of Bounds, not Compatible with Cloth Colliders");
+                    return; 
+                }
+            }
+        }
+
     }
 }

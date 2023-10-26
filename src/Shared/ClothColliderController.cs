@@ -12,12 +12,17 @@ namespace ClothColliders
 
         public void UpdateColliders(int kind)
         {
-            var clothPart = ChaControl.nowCoordinate.clothes.parts[kind];
-            var clothObj = ChaControl.objClothes[kind];
-            if (clothPart == null || clothObj == null) return;
+          
+            //for clothes
+            
+                var clothPart = ChaControl.nowCoordinate.clothes.parts[kind];
+                var clothObj = ChaControl.objClothes[kind];
 
-            ClothCollidersPlugin.SphereColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var colliders);
-            ClothCollidersPlugin.CapsuleColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var capsuleColliders);
+                ClothCollidersPlugin.SphereColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var colliders);
+                ClothCollidersPlugin.CapsuleColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var capsuleColliders);
+                ClothCollidersPlugin.Logger.LogDebug("cloth kind id " + kind.ToString());
+                ClothCollidersPlugin.Logger.LogDebug("cloth part id " + clothPart.id.ToString());
+                ClothCollidersPlugin.Logger.LogDebug(ClothCollidersPlugin.GetDictKey(kind, clothPart.id));
 
             if ((colliders == null || colliders.Count == 0) && (capsuleColliders == null || capsuleColliders.Count == 0)) return;
 
@@ -38,7 +43,103 @@ namespace ClothColliders
 
                     if (sphereResults.Length > 0)
                     {
-                        ClothCollidersPlugin.Logger.LogDebug("Added sphere colliders to bone " + target.name + ": " +
+                        ClothCollidersPlugin.Logger.LogMessage("Added sphere colliders to bone " + target.name + ": " +
+                                                             string.Join(", ",
+                                                                 sphereResults
+                                                                     .SelectMany(pair => new[] { pair.second, pair.first })
+                                                                     .Where(x => x != null)
+                                                                     .Select(x => x.transform.parent.name)
+                                                                     .ToArray()));
+                    }
+                }
+
+                var capsuleTargets = capsuleColliders?.Where(x => x.ClothName == target.name).ToList();
+                var capsuleResults = new CapsuleCollider[capsuleColliders?.Count ?? 0];
+                if (capsuleTargets != null && capsuleTargets.Count > 0)
+                {
+                    for (var index = 0; index < capsuleTargets.Count; index++)
+                    {
+                        var capsuleCollider = capsuleTargets[index];
+                        capsuleResults[index] = AddCapsuleCollider(capsuleCollider);
+                    }
+
+                    if (capsuleResults.Length > 0)
+                    {
+                        ClothCollidersPlugin.Logger.LogMessage("Added capsule colliders to bone " + target.name + ": " +
+                                                             string.Join(", ",
+                                                                 capsuleResults.Where(x => x != null)
+                                                                     .Select(x => x.transform.parent.name)
+                                                                     .ToArray()));
+                    }
+                }
+
+                // Destroy old colliders and apply the newly created
+                // todo a better way of doing this? would interfere with other plugins adding colliders
+                foreach (var existing in target.sphereColliders)
+                {
+                    // Make sure to not remove colliders reused by AddSphereCollider
+                    if (!sphereResults.Any(pair => pair.first == existing.first || pair.second == existing.first))
+                        DestroyImmediate(existing.first);
+                    if (!sphereResults.Any(pair => pair.first == existing.second || pair.second == existing.second))
+                        DestroyImmediate(existing.second);
+                }
+
+                target.sphereColliders = sphereResults;
+
+                foreach (var existing in target.capsuleColliders)
+                {
+                    if (capsuleResults.All(collider => collider != existing))
+                        DestroyImmediate(existing);
+                }
+
+                target.capsuleColliders = capsuleResults;
+            }
+
+            // Debug logging ---
+            var targetBonesNames = (colliders ?? Enumerable.Empty<SphereColliderPair>()).Select(x => x.ClothName)
+                .Concat((capsuleColliders ?? Enumerable.Empty<CapsuleColliderData>()).Select(x => x.ClothName)).Distinct().ToList();
+            var clothNames = targets.Where(x => x != null).Select(cloth => cloth.name).ToList();
+
+            ClothCollidersPlugin.Logger.LogDebug("Cleared old colliders and applied new colliders to cloths: " + string.Join(", ", targetBonesNames.Intersect(clothNames).ToArray()));
+
+            var missing = targetBonesNames.Except(clothNames).ToList();
+            if (missing.Count > 0)
+                ClothCollidersPlugin.Logger.LogWarning("Could not find following bones to apply colliders: " + string.Join(", ", missing.OrderBy(s => s).ToArray()));
+        }
+
+        public void UpdateCollidersAcc(int kind, int slotNo)
+        {
+            //for acc
+            kind -= 351;
+            var clothPart = ChaControl.nowCoordinate.accessory.parts[slotNo];
+            var clothObj = ChaControl.objAccessory[slotNo];
+
+            ClothCollidersPlugin.SphereColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var colliders);
+            ClothCollidersPlugin.CapsuleColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var capsuleColliders);
+            ClothCollidersPlugin.Logger.LogMessage("cloth kind id " + kind.ToString());
+            ClothCollidersPlugin.Logger.LogMessage("cloth part id " + clothPart.id.ToString());
+            ClothCollidersPlugin.Logger.LogMessage(ClothCollidersPlugin.GetDictKey(kind, clothPart.id));
+
+            if ((colliders == null || colliders.Count == 0) && (capsuleColliders == null || capsuleColliders.Count == 0)) return;
+
+            var targets = clothObj.GetComponentsInChildren<Cloth>(true);
+            foreach (var target in targets)
+            {
+                var sphereTargets = colliders?.Where(x => x.ClothName == target.name).ToList();
+                var sphereResults = new ClothSphereColliderPair[sphereTargets?.Count ?? 0];
+                if (sphereTargets != null && sphereTargets.Count > 0)
+                {
+                    for (var index = 0; index < sphereTargets.Count; index++)
+                    {
+                        var colliderPair = sphereTargets[index];
+                        var c1 = AddSphereCollider(colliderPair.first);
+                        var c2 = AddSphereCollider(colliderPair.second);
+                        sphereResults[index] = new ClothSphereColliderPair(c1, c2);
+                    }
+
+                    if (sphereResults.Length > 0)
+                    {
+                        ClothCollidersPlugin.Logger.LogMessage("Added sphere colliders to bone " + target.name + ": " +
                                                              string.Join(", ",
                                                                  sphereResults
                                                                      .SelectMany(pair => new[] { pair.second, pair.first })
