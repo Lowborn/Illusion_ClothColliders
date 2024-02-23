@@ -43,7 +43,7 @@ namespace ClothColliders
 
                     if (sphereResults.Length > 0)
                     {
-                        ClothCollidersPlugin.Logger.LogMessage("Added sphere colliders to bone " + target.name + ": " +
+                        ClothCollidersPlugin.Logger.LogDebug("Added sphere colliders to bone " + target.name + ": " +
                                                              string.Join(", ",
                                                                  sphereResults
                                                                      .SelectMany(pair => new[] { pair.second, pair.first })
@@ -65,7 +65,7 @@ namespace ClothColliders
 
                     if (capsuleResults.Length > 0)
                     {
-                        ClothCollidersPlugin.Logger.LogMessage("Added capsule colliders to bone " + target.name + ": " +
+                        ClothCollidersPlugin.Logger.LogDebug("Added capsule colliders to bone " + target.name + ": " +
                                                              string.Join(", ",
                                                                  capsuleResults.Where(x => x != null)
                                                                      .Select(x => x.transform.parent.name)
@@ -116,9 +116,9 @@ namespace ClothColliders
 
             ClothCollidersPlugin.SphereColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var colliders);
             ClothCollidersPlugin.CapsuleColliders.TryGetValue(ClothCollidersPlugin.GetDictKey(kind, clothPart.id), out var capsuleColliders);
-            ClothCollidersPlugin.Logger.LogMessage("cloth kind id " + kind.ToString());
-            ClothCollidersPlugin.Logger.LogMessage("cloth part id " + clothPart.id.ToString());
-            ClothCollidersPlugin.Logger.LogMessage(ClothCollidersPlugin.GetDictKey(kind, clothPart.id));
+            ClothCollidersPlugin.Logger.LogDebug("cloth kind id " + kind.ToString());
+            ClothCollidersPlugin.Logger.LogDebug("cloth part id " + clothPart.id.ToString());
+            ClothCollidersPlugin.Logger.LogDebug(ClothCollidersPlugin.GetDictKey(kind, clothPart.id));
 
             if ((colliders == null || colliders.Count == 0) && (capsuleColliders == null || capsuleColliders.Count == 0)) return;
 
@@ -139,7 +139,7 @@ namespace ClothColliders
 
                     if (sphereResults.Length > 0)
                     {
-                        ClothCollidersPlugin.Logger.LogMessage("Added sphere colliders to bone " + target.name + ": " +
+                        ClothCollidersPlugin.Logger.LogDebug("Added sphere colliders to bone " + target.name + ": " +
                                                              string.Join(", ",
                                                                  sphereResults
                                                                      .SelectMany(pair => new[] { pair.second, pair.first })

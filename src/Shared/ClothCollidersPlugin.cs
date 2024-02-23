@@ -29,7 +29,7 @@ namespace ClothColliders
         public const string PluginName = "Cloth colliders support";
         public const string GUID = "ClothColliders";
         private const string ManifestGUID = "ClothColliders";
-        public const string Version = "1.1";
+        public const string Version = "1.3";
 
 #if AI || HS2
         private const ChaListDefine.CategoryNo FirstClothingCategoryNo = ChaListDefine.CategoryNo.fo_top;
@@ -82,6 +82,8 @@ namespace ClothColliders
 
             var clothElements = clothManifestRoot.Elements("cloth");
 
+            Logger.LogDebug("Cloth Colliders 1.2 Lowborn's Edit");
+           
             Logger.LogDebug($"Loading cloth collider data for {manifest.GUID}");
             foreach (var clothData in clothElements)
             {
@@ -235,11 +237,11 @@ namespace ClothColliders
                     int kind = __instance.nowCoordinate.accessory.parts[slotNo].type;
                     ClothCollidersPlugin.Logger.LogDebug("kind " + kind);
                     __instance.StartCoroutine(CoroutineUtils.CreateCoroutine(new WaitForEndOfFrame(), () => controller.UpdateCollidersAcc(kind, slotNo)));
-                    Logger.LogMessage("Acc kind " + slotNo.ToString());
+                    Logger.LogDebug("Acc kind " + slotNo.ToString());
                 }
                 else
                 {
-                    Logger.LogMessage("Acc Slot Out of Bounds, not Compatible with Cloth Colliders");
+                    Logger.LogDebug("Acc Slot Out of Bounds, not Compatible with Cloth Colliders");
                     return; 
                 }
             }
